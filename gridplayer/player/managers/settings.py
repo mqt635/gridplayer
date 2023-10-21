@@ -12,6 +12,7 @@ class SettingsManager(ManagerBase):
     set_screensaver = pyqtSignal(int)
     set_log_level = pyqtSignal(int)
     set_log_level_vlc = pyqtSignal(int)
+    set_recent_list_enabled = pyqtSignal(bool)
 
     @property
     def commands(self):
@@ -42,6 +43,7 @@ class SettingsManager(ManagerBase):
             "logging/log_level": self.set_log_level,
             "logging/log_level_vlc": self.set_log_level_vlc,
             "player/inhibit_screensaver": self.set_screensaver,
+            "player/recent_list_enabled": self.set_recent_list_enabled,
         }
 
         changes = self._setting_changes(previous_settings, tuple(checks))
@@ -66,6 +68,7 @@ class SettingsManager(ManagerBase):
             "logging/log_limit",
             "logging/log_limit_size",
             "logging/log_limit_backups",
+            "player/stay_on_top",
         }
 
         return self._setting_changes(previous_settings, checks)

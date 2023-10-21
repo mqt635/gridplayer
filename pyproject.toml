@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "gridplayer"
-version = "0.4.3"
+version = "0.5.3"
 description = "Play videos side-by-side"
 authors = ["vzhd1701 <vzhd1701@gmail.com>"]
 readme = "README.md"
@@ -30,20 +30,21 @@ classifiers = [
 gridplayer = "gridplayer.__main__:main"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.8.1"
 PyQt5 = "5.15.7"
+PyQt5-Qt5 = "5.15.2"
 pydantic = "^1.8.2"
 python-vlc = "3.0.11115"
 pyobjc-core = { version = "*", platform = "darwin" }
 pyobjc-framework-Cocoa = { version = "*", platform = "darwin" }
-streamlink = "4.2.0"
-yt-dlp = "2022.07.18"
+streamlink = "6.2.1"
+yt-dlp = "2023.10.13"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 isort = "^5.8.0"
 flakehell = "^0.9.0"
-wemake-python-styleguide = "^0.15.2"
-black = "^21.5b1"
+wemake-python-styleguide = "^0.18.0"
+black = "^23.3.0"
 mdformat = "0.7.7"
 pre-commit = "^2.15.0"
 pytest = "^7.1.2"
@@ -65,14 +66,17 @@ nested_classes_whitelist=["Config"]
 
 [tool.flakehell.plugins]
 # Disabled [personal preference]
+# WPS110 wrong names
 # WPS111 short names
 # WPS115 upper-case constant in a class - flag enums
 # WPS226 String constant overuse
+# WPS237 Complex f-strings
 # WPS305 forbids f-strings
 # WPS326 implicit line concat
 # WPS336 explicit string concat
 # WPS425 boolean non-keyword
 # WPS428 ... <- nop statements, used in abstract classes
+# WPS604 ... <- nop statements, used in abstract classes
 # WPS437 protected attribute usage
 # WPS601 shadowed class attribute, doesn't work for dataclasses
 #   Qt setAttribute functions
@@ -101,7 +105,7 @@ flake8-quotes = ["+*", "-Q000"]
 flake8-rst-docstrings = ["-*"]
 flake8-docstrings = ["-*"]
 flake8-darglint = ["-*"]
-wemake-python-styleguide = ["+*", "-WPS111", "-WPS115", "-WPS201", "-WPS214", "-WPS226", "-WPS305", "-WPS317", "-WPS326", "-WPS336", "-WPS425", "-WPS428", "-WPS437", "-WPS601"]
+wemake-python-styleguide = ["+*", "-WPS110", "-WPS111", "-WPS115", "-WPS201", "-WPS214", "-WPS226", "-WPS237", "-WPS305", "-WPS317", "-WPS326", "-WPS336", "-WPS425", "-WPS428", "-WPS437", "-WPS601", "-WPS604"]
 
 [tool.flakehell.exceptions."gridplayer/version.py"]
 # I like it this way
@@ -133,7 +137,11 @@ wemake-python-styleguide = ["+*", "-WPS211", "-WPS404"]
 # WPS202 too many modules
 wemake-python-styleguide = ["+*", "-WPS202"]
 
-[tool.flakehell.exceptions."gridplayer/player/managers/actions.py"]
+[tool.flakehell.exceptions."gridplayer/params/languages.py"]
+# WPS432 magic numbers - completion %
+wemake-python-styleguide = ["+*", "-WPS432"]
+
+[tool.flakehell.exceptions."gridplayer/params/actions.py"]
 # WPS204 overused expression
 # translate
 wemake-python-styleguide = ["+*", "-WPS204"]

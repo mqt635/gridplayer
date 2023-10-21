@@ -1,10 +1,9 @@
-import itertools
 from pathlib import Path
 
 from PyQt5.QtCore import QEvent, pyqtSignal
 
 from gridplayer.player.managers.base import ManagerBase
-from gridplayer.utils.qt import is_modal_open
+from gridplayer.utils.qt import is_modal_open, translate
 from gridplayer.widgets.video_block import VideoBlock
 
 
@@ -39,7 +38,11 @@ class ActiveBlockManager(ManagerBase):
             "is_active_live": self.is_active_live,
             "is_active_multistream": self.is_active_multistream,
             "is_active_local_file": self.is_active_local_file,
+            "is_active_has_audio": self.is_active_has_audio,
+            "is_active_has_video": self.is_active_has_video,
             "menu_generator_stream_quality": self.menu_generator_stream_quality,
+            "menu_generator_video_track": self.menu_generator_video_track,
+            "menu_generator_audio_track": self.menu_generator_audio_track,
             "next_active": self.next_active,
             "previous_active": self.previous_active,
         }
@@ -99,6 +102,18 @@ class ActiveBlockManager(ManagerBase):
 
         return isinstance(self._ctx.active_block.video_params.uri, Path)
 
+    def is_active_has_audio(self):
+        if not self.is_active_initialized():
+            return False
+
+        return bool(self._ctx.active_block.audio_tracks)
+
+    def is_active_has_video(self):
+        if not self.is_active_initialized():
+            return False
+
+        return bool(self._ctx.active_block.video_tracks)
+
     def is_active_multistream(self):
         if self.is_no_active_block:
             return False
@@ -107,20 +122,81 @@ class ActiveBlockManager(ManagerBase):
 
     def menu_generator_stream_quality(self):
         if self.is_no_active_block:
+            return []
+
+        video_streams = self._ctx.active_block.streams.video_streams
+        audio_only_streams = self._ctx.active_block.streams.audio_only_streams
+
+        streams = [
+            _stream_menu_item(quality)
+            for quality, stream in reversed(list(video_streams.items()))
+        ]
+
+        audio_only_streams = [
+            _stream_menu_item(quality)
+            for quality, stream in reversed(list(audio_only_streams.items()))
+        ]
+
+        if audio_only_streams:
+            if streams:
+                streams += ["---"]
+            streams += audio_only_streams
+
+        return streams
+
+    def menu_generator_video_track(self):
+        if self.is_no_active_block or not self._ctx.active_block.video_tracks:
             return {}
 
-        return list(
-            itertools.chain(
-                {
-                    "title": quality,
-                    "icon": "empty",
-                    "func": ("active", "switch_stream_quality", quality),
-                    "check_if": ("is_active_param_set_to", "stream_quality", quality),
-                    "show_if": "is_active_multistream",
-                }
-                for quality in reversed(self._ctx.active_block.streams)
-            )
-        )
+        menu = [
+            {
+                "title": translate("Actions", "Disable Video"),
+                "icon": "empty",
+                "func": ("active", "set_video_track", -1),
+                "check_if": ("is_active_param_set_to", "video_track_id", -1),
+                "show_if": "is_active_initialized",
+            }
+        ]
+
+        menu += [
+            {
+                "title": track.info,
+                "icon": "empty",
+                "func": ("active", "set_video_track", track_id),
+                "check_if": ("is_active_param_set_to", "video_track_id", track_id),
+                "show_if": "is_active_initialized",
+            }
+            for track_id, track in self._ctx.active_block.video_tracks.items()
+        ]
+
+        return menu
+
+    def menu_generator_audio_track(self):
+        if self.is_no_active_block or not self._ctx.active_block.audio_tracks:
+            return {}
+
+        menu = [
+            {
+                "title": translate("Actions", "Disable Audio"),
+                "icon": "empty",
+                "func": ("active", "set_audio_track", -1),
+                "check_if": ("is_active_param_set_to", "audio_track_id", -1),
+                "show_if": "is_active_initialized",
+            }
+        ]
+
+        menu += [
+            {
+                "title": track.info,
+                "icon": "empty",
+                "func": ("active", "set_audio_track", track_id),
+                "check_if": ("is_active_param_set_to", "audio_track_id", track_id),
+                "show_if": "is_active_initialized",
+            }
+            for track_id, track in self._ctx.active_block.audio_tracks.items()
+        ]
+
+        return menu
 
     def update_active_under_mouse(self):
         if is_modal_open():
@@ -182,3 +258,13 @@ class ActiveBlockManager(ManagerBase):
     def _get_current_cursor_pos(self):
         parent = self.parent()
         return parent.mapFromGlobal(parent.cursor().pos())
+
+
+def _stream_menu_item(quality: str):
+    return {
+        "title": quality,
+        "icon": "empty",
+        "func": ("active", "switch_stream_quality", quality),
+        "check_if": ("is_active_param_set_to", "stream_quality", quality),
+        "show_if": "is_active_multistream",
+    }

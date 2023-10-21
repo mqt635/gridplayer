@@ -5,7 +5,7 @@ from PyQt5.QtGui import QBrush, QImage, QPainter, QPixmap
 from PyQt5.QtWidgets import QFrame, QGraphicsPixmapItem, QGraphicsScene, QGraphicsView
 
 from gridplayer.multiprocess.safe_shared_memory import SafeSharedMemory
-from gridplayer.params.static import PLAYER_ID_LENGTH
+from gridplayer.params.static import PLAYER_ID_LENGTH, VideoCrop
 from gridplayer.utils.qt import QT_ASPECT_MAP, qt_connect
 from gridplayer.vlc_player.image_decoder import ImageDecoder
 from gridplayer.vlc_player.instance import InstanceProcessVLC
@@ -28,7 +28,7 @@ class InstanceProcessVLCSW(InstanceProcessVLC):
             for _ in range(self.players_per_instance)
         ]
 
-        self._vlc.vlc_options = ["--vout=vdummy"]
+        self._vlc.vlc_options.append("--vout=vdummy")
 
     def init_player_shared_data(self, player_id):
         available_locks = (ml for ml in self._memory_locks if ml["is_busy"].value == 0)
@@ -110,7 +110,7 @@ class PlayerProcessSingleVLCSW(VlcPlayerThreaded):
         self.cmd_loop_terminate()
 
     def load_video_st2_set_media(self):
-        if not self._is_decoder_initialized and self.media_track:
+        if not self._is_decoder_initialized and self.media:
             self._init_video_decoder()
 
         super().load_video_st2_set_media()
@@ -120,6 +120,9 @@ class PlayerProcessSingleVLCSW(VlcPlayerThreaded):
             # Since we need metadata to allocate video buffer, restart is required
             self._restart_playback()
             return
+
+        self._tracks_manager.set_video_track_id(self.media_input.video.video_track_id)
+        self._tracks_manager.set_audio_track_id(self.media_input.video.audio_track_id)
 
         super().load_video_st4_loaded()
 
@@ -133,13 +136,13 @@ class PlayerProcessSingleVLCSW(VlcPlayerThreaded):
 
         super().set_pause(is_paused)
 
-    def adjust_view(self, size, aspect, scale):
+    def adjust_view(self, size, aspect, scale, crop):
         """Done by the widget"""
 
     def _init_video_decoder(self):
         self._is_decoder_initialized = True
 
-        width, height = self.media_track.video_dimensions
+        width, height = self.video_dimensions
 
         self.decoder.set_frame(width, height)
         self.decoder.attach_media_player(self._media_player)
@@ -158,7 +161,7 @@ class VideoDriverVLCSW(VLCVideoDriverThreaded):
     set_dummy_frame_sig = pyqtSignal()
     image_ready_sig = pyqtSignal()
 
-    def __init__(self, image_dest, process_manager, **kwargs):
+    def __init__(self, image_dest, process_manager, vlc_options, **kwargs):
         super().__init__(**kwargs)
 
         self._width = None
@@ -174,7 +177,9 @@ class VideoDriverVLCSW(VLCVideoDriverThreaded):
             (self.image_ready_sig, self.image_ready),
         )
 
-        self.player = process_manager.init_player({}, self.cmd_child_pipe())
+        self.player = process_manager.init_player(
+            {}, self.cmd_child_pipe(), vlc_options
+        )
 
     def init_frame(self, width, height):
         self._shared_memory = self.player.get_player_shared_data()
@@ -227,10 +232,11 @@ class VideoDriverVLCSW(VLCVideoDriverThreaded):
 class VideoFrameVLCSW(VideoFrameVLCProcess):
     is_opengl = False
 
-    def driver_setup(self) -> VideoDriverVLCSW:
+    def driver_setup(self, vlc_options) -> VideoDriverVLCSW:
         return VideoDriverVLCSW(
             image_dest=self._videoitem,
             process_manager=self.process_manager,
+            vlc_options=vlc_options,
             parent=self,
         )
 
@@ -284,7 +290,22 @@ class VideoFrameVLCSW(VideoFrameVLCProcess):
 
         aspect = QT_ASPECT_MAP[self._aspect]
 
-        self.video_surface.fitInView(self._videoitem, aspect)
+        if self._crop != VideoCrop(0, 0, 0, 0):
+            cropped = (
+                self._videoitem.shape()
+                .boundingRect()
+                .adjusted(
+                    -self._crop.Left,
+                    self._crop.Top,
+                    self._crop.Right,
+                    -self._crop.Bottom,
+                )
+            )
+
+            self.video_surface.setSceneRect(cropped)
+            self.video_surface.fitInView(cropped, aspect)
+        else:
+            self.video_surface.fitInView(self._videoitem, aspect)
         black_border_cut = 0.05
         self.video_surface.scale(
             self._scale + black_border_cut, self._scale + black_border_cut

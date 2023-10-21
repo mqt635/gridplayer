@@ -4,14 +4,13 @@ from abc import abstractmethod
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from gridplayer.utils.qt import QABC
-from gridplayer.vlc_player.static import MediaInput, MediaTrack
+from gridplayer.vlc_player.static import Media, MediaInput
 
 
 class VLCVideoDriver(QObject, metaclass=QABC):
     time_changed = pyqtSignal(int)
     playback_status_changed = pyqtSignal(int)
-    end_reached = pyqtSignal()
-    load_finished = pyqtSignal(MediaTrack)
+    load_finished = pyqtSignal(Media)
     snapshot_taken = pyqtSignal(str)
 
     error = pyqtSignal(str)
@@ -33,14 +32,11 @@ class VLCVideoDriver(QObject, metaclass=QABC):
     def playback_status_changed_emit(self, status):
         self.playback_status_changed.emit(status)
 
-    def end_reached_emit(self):
-        self.end_reached.emit()
-
     @abstractmethod
     def load_video(self, media_input: MediaInput):
         ...
 
-    def load_video_done(self, media_track: MediaTrack):
+    def load_video_done(self, media_track: Media):
         self.load_finished.emit(media_track)
 
     @abstractmethod
@@ -72,6 +68,18 @@ class VLCVideoDriver(QObject, metaclass=QABC):
 
     @abstractmethod
     def audio_set_volume(self, volume):
+        ...
+
+    @abstractmethod
+    def set_audio_track(self, track_id):
+        ...
+
+    @abstractmethod
+    def set_video_track(self, track_id):
+        ...
+
+    @abstractmethod
+    def set_audio_channel_mode(self, mode):
         ...
 
     def error_state(self, error):

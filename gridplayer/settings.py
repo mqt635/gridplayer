@@ -1,32 +1,33 @@
 import logging
 from contextlib import suppress
 from enum import Enum
+from pathlib import Path
 
 from pydantic import BaseModel, Field
-from PyQt5.QtCore import QLocale, QSettings
+from PyQt5.QtCore import QSettings
 
+from gridplayer.models.recent_list import (
+    RecentList,
+    RecentListPlaylists,
+    RecentListVideos,
+)
 from gridplayer.models.resolver_patterns import ResolverPatterns
 from gridplayer.params import env
+from gridplayer.params.languages import get_system_language
 from gridplayer.params.static import (
-    SUPPORTED_LANGUAGES,
+    AudioChannelMode,
     GridMode,
     SeekSyncMode,
     URLResolver,
     VideoAspect,
     VideoDriver,
     VideoRepeat,
+    VideoTransform,
 )
 from gridplayer.utils.app_dir import get_app_data_dir
 from gridplayer.utils.log_config import DISABLED
 
 SETTINGS = None
-
-
-def default_language():
-    lang = QLocale().system().name()
-    if lang in SUPPORTED_LANGUAGES:
-        return lang
-    return "en_US"
 
 
 _default_settings = {
@@ -37,8 +38,11 @@ _default_settings = {
     "player/pause_minimized": True,
     "player/inhibit_screensaver": True,
     "player/one_instance": True,
+    "player/stay_on_top": False,
     "player/show_overlay_border": False,
-    "player/language": default_language(),
+    "player/language": get_system_language(),
+    "player/recent_list_enabled": True,
+    "player/recent_list_max_size": 10,
     "playlist/grid_mode": GridMode.AUTO_ROWS,
     "playlist/grid_fit": True,
     "playlist/grid_size": 0,
@@ -51,7 +55,9 @@ _default_settings = {
     "playlist/disable_click_pause": False,
     "playlist/disable_wheel_seek": False,
     "video_defaults/aspect": VideoAspect.FIT,
+    "video_defaults/transform": VideoTransform.NONE,
     "video_defaults/repeat": VideoRepeat.SINGLE_FILE,
+    "video_defaults/audio_mode": AudioChannelMode.UNSET,
     "video_defaults/random_loop": False,
     "video_defaults/muted": True,
     "video_defaults/paused": False,
@@ -72,6 +78,8 @@ _default_settings = {
     "streaming/hls_via_streamlink": True,
     "streaming/resolver_priority": URLResolver.STREAMLINK,
     "streaming/resolver_priority_patterns": ResolverPatterns(__root__=[]),
+    "recent_list_videos": RecentListVideos(),
+    "recent_list_playlists": RecentListPlaylists(),
 }
 
 if env.IS_MACOS:
@@ -95,18 +103,32 @@ class _Settings(object):
         if issubclass(setting_type, BaseModel):
             return self._parse_pydantic(setting_type, setting)
 
+        if issubclass(setting_type, RecentList):
+            return self._parse_list(setting_type, setting)
+
         return self.settings.value(
             setting, _default_settings[setting], type=setting_type
         )
 
     def set(self, setting_name, setting_value):
-        if isinstance(setting_value, Enum):
-            setting_value = setting_value.value
+        setting_type = type(_default_settings[setting_name])
 
-        if isinstance(setting_value, BaseModel):
-            setting_value = setting_value.json()
+        if setting_type != type(setting_value):  # noqa: WPS516
+            raise ValueError(
+                f"Setting {setting_name} is of type {setting_type}"
+                f" but value is of type {type(setting_value)}"
+            )
+
+        if issubclass(setting_type, RecentList):
+            self._save_list(setting_name, setting_value)
+            return
+
+        setting_value = self._get_storage_value(setting_value)
 
         self.settings.setValue(setting_name, setting_value)
+
+    def reset(self, setting_name):
+        self.set(setting_name, _default_settings[setting_name])
 
     def get_all(self):
         return {k: self.get(k) for k in _default_settings}
@@ -139,6 +161,39 @@ class _Settings(object):
                 return setting_type.parse_raw(setting_value)
 
         return _default_settings[setting]
+
+    def _parse_list(self, setting_type, setting):
+        res_list = []
+
+        self.settings.beginGroup(setting)
+        for key in self.settings.childKeys():
+            res_list.append(self.settings.value(key))
+        self.settings.endGroup()
+
+        return setting_type(res_list)
+
+    def _save_list(self, setting_name, setting_value):
+        self.settings.remove(setting_name)
+
+        if not setting_value:
+            return
+
+        self.settings.beginGroup(setting_name)
+        for i, item in enumerate(setting_value):
+            self.settings.setValue(str(i), self._get_storage_value(item))
+        self.settings.endGroup()
+
+    def _get_storage_value(self, setting_value):
+        if isinstance(setting_value, Enum):
+            return setting_value.value
+
+        if isinstance(setting_value, BaseModel):
+            return setting_value.json()
+
+        if isinstance(setting_value, (Path, str)):
+            return str(setting_value)
+
+        return setting_value
 
 
 def Settings():

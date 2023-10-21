@@ -5,7 +5,13 @@ from PyQt5.QtCore import Qt, pyqtSignal
 
 from gridplayer.dialogs.input_dialog import QCustomSpinboxInput, QCustomSpinboxTimeInput
 from gridplayer.models.video import Video
-from gridplayer.params.static import SeekSyncMode, VideoAspect, VideoRepeat
+from gridplayer.params.static import (
+    AudioChannelMode,
+    SeekSyncMode,
+    VideoAspect,
+    VideoRepeat,
+    VideoTransform,
+)
 from gridplayer.player.managers.base import ManagerBase
 from gridplayer.settings import Settings
 from gridplayer.utils.qt import qt_connect, translate
@@ -121,8 +127,17 @@ class VideoBlocksManager(ManagerBase):
     all_scale_decrease = pyqtSignal()
     all_scale_reset = pyqtSignal()
 
+    all_crop = pyqtSignal(int, int, int, int)
+    all_crop_reset = pyqtSignal()
+
     all_set_aspect = pyqtSignal(VideoAspect)
+    all_set_transform = pyqtSignal(VideoTransform)
     all_set_auto_reload_timer = pyqtSignal(int)
+    all_set_audio_channel_mode = pyqtSignal(AudioChannelMode)
+
+    all_volume_increase = pyqtSignal()
+    all_volume_decrease = pyqtSignal()
+    all_set_muted = pyqtSignal(bool)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -144,6 +159,8 @@ class VideoBlocksManager(ManagerBase):
         return {
             "all": self.cmd_all,
             "all_play_pause": self.cmd_all_play_pause,
+            "all_play": self.cmd_all_play,
+            "all_pause": self.cmd_all_pause,
             "all_seek_timecode": self.cmd_seek_timecode,
             "all_set_auto_reload_timer": self.cmd_set_auto_reload_timer,
             "is_videos": lambda: bool(self._ctx.video_blocks),
@@ -151,6 +168,8 @@ class VideoBlocksManager(ManagerBase):
             "is_any_videos_seekable": self.is_any_videos_seekable,
             "is_any_videos_local_file": self.is_any_videos_local_file,
             "is_any_videos_live": self.is_any_videos_live,
+            "is_any_videos_have_audio": self.is_any_videos_have_audio,
+            "is_any_videos_have_video": self.is_any_videos_have_video,
             "is_seek_sync_mode_set_to": self.is_seek_sync_mode_set_to,
             "set_seek_sync_mode": self.set_seek_sync_mode,
             "reload_all": self.reload_videos,
@@ -176,6 +195,12 @@ class VideoBlocksManager(ManagerBase):
             self.set_pause.emit(True)
         else:
             self.set_pause.emit(False)
+
+    def cmd_all_play(self):
+        self.set_pause.emit(False)
+
+    def cmd_all_pause(self):
+        self.set_pause.emit(True)
 
     def cmd_seek_timecode(self):
         time_ms = QCustomSpinboxTimeInput.get_time_ms_int(
@@ -246,11 +271,14 @@ class VideoBlocksManager(ManagerBase):
     def is_any_videos_live(self):
         return any(vb.is_live for vb in self._ctx.video_blocks.initialized)
 
+    def is_any_videos_have_audio(self):
+        return any(vb.audio_tracks for vb in self._ctx.video_blocks.initialized)
+
+    def is_any_videos_have_video(self):
+        return any(vb.video_tracks for vb in self._ctx.video_blocks.initialized)
+
     def is_any_videos_local_file(self):
         return any(vb.is_local_file for vb in self._ctx.video_blocks.initialized)
-
-    def pause_all(self):
-        self.set_pause.emit(True)
 
     def reload_videos(self):
         if self._videos_to_reload:
@@ -344,8 +372,15 @@ class VideoBlocksManager(ManagerBase):
             (self.all_scale_increase, vb.scale_increase),
             (self.all_scale_decrease, vb.scale_decrease),
             (self.all_scale_reset, vb.scale_reset),
+            (self.all_crop, vb.crop),
+            (self.all_crop_reset, vb.crop_reset),
             (self.all_set_aspect, vb.set_aspect),
+            (self.all_set_transform, vb.set_transform),
             (self.all_set_auto_reload_timer, vb.set_auto_reload_timer),
+            (self.all_set_audio_channel_mode, vb.set_audio_channel_mode),
+            (self.all_volume_increase, vb.volume_increase),
+            (self.all_volume_decrease, vb.volume_decrease),
+            (self.all_set_muted, vb.set_muted),
             (self.all_previous_video, vb.previous_video),
             (self.all_next_video, vb.next_video),
             (self.hide_overlay, vb.hide_overlay),

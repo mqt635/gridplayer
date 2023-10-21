@@ -1,4 +1,4 @@
-![GridPlayer](https://raw.githubusercontent.com/vzhd1701/gridplayer/master/resources/public/logo.png)
+![GridPlayer](https://raw.githubusercontent.com/vzhd1701/gridplayer/master/resources/public/logo.svg)
 
 [![PyPI version](https://img.shields.io/pypi/v/gridplayer)](https://pypi.python.org/pypi/gridplayer)
 [![Github All Releases](https://img.shields.io/github/downloads/vzhd1701/gridplayer/total.svg)](https://github.com/vzhd1701/gridplayer/releases/latest)
@@ -35,14 +35,22 @@ information about the position, sound volume, loops, aspect ratio, etc.
 GridPlayer now supports internationalization! Anyone with a handful of free time and
 desire to support this project is [welcome to contribute](https://crowdin.com/project/gridplayer).
 No coding skills or special software required, all dialogs are well documented and
-there are not many strings to translate. Every contributor will be given proper credit.
+there are not many strings to translate.
+
+Huge thanks to [every contributor](https://github.com/vzhd1701/gridplayer#translations)!
 
 ## Installation
 
 ### Windows
 
-[![Download Windows Installer](https://raw.githubusercontent.com/vzhd1701/gridplayer/master/resources/public/dl_windows_installer.png)](https://github.com/vzhd1701/gridplayer/releases/download/v0.4.3/GridPlayer-0.4.3-win64-install.exe)
-[![Download Windows Portable](https://raw.githubusercontent.com/vzhd1701/gridplayer/master/resources/public/dl_windows_portable.png)](https://github.com/vzhd1701/gridplayer/releases/download/v0.4.3/GridPlayer-0.4.3-win64-portable.zip)
+[![Download Windows Installer](https://raw.githubusercontent.com/vzhd1701/gridplayer/master/resources/public/dl_windows_installer.png)](https://github.com/vzhd1701/gridplayer/releases/download/v0.5.3/GridPlayer-0.5.3-win64-install.exe)
+[![Download Windows Portable](https://raw.githubusercontent.com/vzhd1701/gridplayer/master/resources/public/dl_windows_portable.png)](https://github.com/vzhd1701/gridplayer/releases/download/v0.5.3/GridPlayer-0.5.3-win64-portable.zip)
+
+Via [scoop](https://scoop.sh/):
+
+```shell
+$ scoop install gridplayer
+```
 
 **Compatible with Windows 7, 8, 10, 11.**
 
@@ -50,7 +58,7 @@ there are not many strings to translate. Every contributor will be given proper 
 
 [![Get it from the Flathub](https://raw.githubusercontent.com/vzhd1701/gridplayer/master/resources/public/dl_flathub.png)](https://flathub.org/apps/details/com.vzhd1701.gridplayer)
 [![Get it from the Snap Store](https://raw.githubusercontent.com/vzhd1701/gridplayer/master/resources/public/dl_snap.png)](https://snapcraft.io/gridplayer)
-[![Download AppImage](https://raw.githubusercontent.com/vzhd1701/gridplayer/master/resources/public/dl_appimage.png)](https://github.com/vzhd1701/gridplayer/releases/download/v0.4.3/GridPlayer-0.4.3-x86_64.AppImage)
+[![Download AppImage](https://raw.githubusercontent.com/vzhd1701/gridplayer/master/resources/public/dl_appimage.png)](https://github.com/vzhd1701/gridplayer/releases/download/v0.5.3/GridPlayer-0.5.3-x86_64.AppImage)
 
 **For better system integration install via Flathub.**
 
@@ -61,12 +69,12 @@ The AppImage was built using Ubuntu Focal Fossa libraries, so compatibility is U
 You may need to set execute permissions on AppImage file in order to run it:
 
 ```shell
-$ chmod +x GridPlayer-0.4.3-x86_64.AppImage
+$ chmod +x GridPlayer-0.5.3-x86_64.AppImage
 ```
 
 ### MacOS
 
-[![Download DMG](https://raw.githubusercontent.com/vzhd1701/gridplayer/master/resources/public/dl_dmg.png)](https://github.com/vzhd1701/gridplayer/releases/download/v0.4.3/GridPlayer.0.4.3.dmg)
+[![Download DMG](https://raw.githubusercontent.com/vzhd1701/gridplayer/master/resources/public/dl_dmg.png)](https://github.com/vzhd1701/gridplayer/releases/download/v0.5.3/GridPlayer.0.5.3.dmg)
 
 **DMG image is not signed.** You will have to add an exception to run this app.
 
@@ -142,11 +150,11 @@ To fix this, you need to allow GridPlayer snap to access system mount informatio
 $ sudo snap connect gridplayer:mount-observe
 ```
 
-#### Linux (KDE): black screen issue when using hardware decoder
+#### Linux: black screen issue when using hardware decoder
 
 Switch on "Opaque overlay (fix black screen)" checkbox in settings.
 
-Overlay might be a bit glitchy in KDE with hardware decoder.
+Depending on the window manager, the overlay might be a bit glitchy with the hardware decoder. Enabling compositor might help.
 
 ## Geting help
 
@@ -191,9 +199,62 @@ This software was build using
 - **Flag Icons** by [Panayiotis Lipiridis](https://github.com/lipis/flag-icons)
   - Licensed under *MIT License*
 
-### Translations
+## Translations
 
-- **Hungarian** by [samu112](https://crowdin.com/profile/samu112)
+### Arabic
+
+- [azoaz6001](https://crowdin.com/profile/azoaz6001)
+
+### German
+
+- [DominikPott](https://crowdin.com/profile/dominikpott)
+
+### Spanish
+
+- [Sergio Varela](https://crowdin.com/profile/ingrownmink4)
+- [asolis2020](https://crowdin.com/profile/asolis2020)
+
+### French
+
+- [Sylvain LOUIS](https://crowdin.com/profile/louis_sylvain)
+
+### Hungarian
+
+- [samu112](https://crowdin.com/profile/samu112)
+
+### Italian
+
+- [Davide V.](https://crowdin.com/profile/davidev1)
+- [SolarCTP](https://crowdin.com/profile/solarctp)
+
+### Japanese
+
+- [七篠孝志](https://crowdin.com/profile/japanese.john.doe.774)
+
+### Korean
+
+- [VenusGirl](https://venusgirls.tistory.com/)
+
+### Dutch
+
+- [Heimen Stoffels](https://crowdin.com/profile/vistaus)
+
+### Polish
+
+- [rafal132](https://crowdin.com/profile/fifi132)
+- [Sebastian Jasiński](https://crowdin.com/profile/princenorris)
+
+### Portuguese, Brazilian
+
+- [GBS ~ TECH](https://crowdin.com/profile/gabriel-bs1)
+
+### Chinese Simplified
+
+- [Yagang Wang](https://crowdin.com/profile/wyg945)
+- [1017346](https://crowdin.com/profile/1017346)
+- [焦新营](https://crowdin.com/profile/j149697726)
+- [loser7788](https://crowdin.com/profile/loser7788)
+- [李凡](https://crowdin.com/profile/lif86060)
 
 ## License
 

@@ -40,3 +40,12 @@ class VLCVideoDriverThreaded(CommandLoopThreaded, VLCVideoDriver):
 
     def audio_set_volume(self, volume):
         self.cmd_send("audio_set_volume", volume)
+
+    def set_audio_track(self, track_id):
+        self.cmd_send("set_audio_track", track_id)
+
+    def set_video_track(self, track_id):
+        self.cmd_send("set_video_track", track_id)
+
+    def set_audio_channel_mode(self, mode):
+        self.cmd_send("set_audio_channel_mode", mode)

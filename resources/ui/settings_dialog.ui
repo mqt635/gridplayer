@@ -175,11 +175,46 @@
           </widget>
          </item>
          <item>
+          <widget class="QCheckBox" name="playerStayOnTop">
+           <property name="text">
+            <string>Stay on top</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QCheckBox" name="playerShowOverlayBorder">
            <property name="text">
             <string>Show overlay border for active video</string>
            </property>
           </widget>
+         </item>
+         <item>
+          <layout class="QFormLayout" name="formLayout_10">
+           <property name="fieldGrowthPolicy">
+            <enum>QFormLayout::FieldsStayAtSizeHint</enum>
+           </property>
+           <item row="0" column="0">
+            <widget class="QCheckBox" name="playerRecentList">
+             <property name="text">
+              <string>Enable recent list, maximum size</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <layout class="QHBoxLayout" name="horizontalLayout_6">
+             <item>
+              <widget class="QSpinBox" name="playerRecentListSize"/>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_16">
+               <property name="text">
+                <string>(items)</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
          </item>
          <item>
           <widget class="QLabel" name="section_timeouts">
@@ -586,15 +621,35 @@
            <item row="0" column="1">
             <widget class="QComboBox" name="videoAspect"/>
            </item>
-           <item row="1" column="0">
+           <item row="2" column="0">
             <widget class="QLabel" name="repeatModeLabel">
              <property name="text">
               <string>Repeat mode</string>
              </property>
             </widget>
            </item>
-           <item row="1" column="1">
+           <item row="2" column="1">
             <widget class="QComboBox" name="repeatMode"/>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_15">
+             <property name="text">
+              <string>Audio mode</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QComboBox" name="videoAudioMode"/>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="videoTransformLabel">
+             <property name="text">
+              <string>Transform</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QComboBox" name="videoTransform"/>
            </item>
           </layout>
          </item>

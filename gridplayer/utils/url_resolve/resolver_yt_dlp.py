@@ -9,7 +9,7 @@ from yt_dlp import DownloadError, YoutubeDL
 from yt_dlp.utils import UnsupportedError
 
 from gridplayer.models.stream import HashableDict, Stream, Streams, StreamSessionOpts
-from gridplayer.models.video import VideoURL
+from gridplayer.models.video_uri import VideoURL
 from gridplayer.settings import Settings
 from gridplayer.utils.url_resolve.resolver_base import ResolverBase
 from gridplayer.utils.url_resolve.static import (
@@ -81,6 +81,10 @@ class YoutubeDLResolver(ResolverBase):
 
     @cached_property
     def _raw_streams(self):
+        if self._video_info.get("direct") == True:
+            self._log.debug("yt-dlp reports direct link, passing it to DirectResolver")
+            raise NoResolverPlugin
+
         http_streams = [
             fmt
             for fmt in self._video_info.get("formats", [])
@@ -139,10 +143,10 @@ class YoutubeDLResolver(ResolverBase):
 
         unknown_counter = itertools.count(1)
 
-        audio_tracks = self._get_audio_tracks(raw_streams_audio)
+        m3u8_audio_tracks = self._get_m3u8_audio_tracks(raw_streams_audio)
 
-        for raw_stream in raw_streams_main:
-            stream = self._get_stream(raw_stream, audio_tracks, is_live)
+        for raw_stream in raw_streams_main + raw_streams_audio:
+            stream = self._get_stream(raw_stream, m3u8_audio_tracks, is_live)
 
             fmt_name = _get_fmt_name(
                 stream=raw_stream,
@@ -154,7 +158,7 @@ class YoutubeDLResolver(ResolverBase):
 
         return streams
 
-    def _get_audio_tracks(self, raw_streams_audio) -> Optional[Streams]:
+    def _get_m3u8_audio_tracks(self, raw_streams_audio) -> Optional[Streams]:
         if not raw_streams_audio:
             return None
 
@@ -163,21 +167,28 @@ class YoutubeDLResolver(ResolverBase):
         return self._get_streams(audio_tracks_m3u8, [], False)
 
     def _get_stream(
-        self, stream, audio_tracks: Optional[Streams], is_live: bool
+        self, stream, m3u8_audio_tracks: Optional[Streams], is_live: bool
     ) -> Stream:
         is_m3u8 = "m3u8" in stream["protocol"]
 
-        if is_m3u8 and stream.get("acodec") == "none" and audio_tracks:
-            cur_audio_tracks = audio_tracks
+        if is_m3u8 and stream.get("acodec") == "none" and m3u8_audio_tracks:
+            cur_audio_tracks = m3u8_audio_tracks
             is_live = False
         else:
             cur_audio_tracks = None
 
         url, protocol = _get_stream_url(stream, is_live)
 
+        is_audio_only = stream.get("vcodec") == "none" or (
+            stream.get("video_ext") in {"none", None}
+            and stream.get("resolution") in {"none", None}
+            and stream.get("width") in {"none", None}
+        )
+
         return Stream(
             url=url,
             protocol=protocol,
+            is_audio_only=is_audio_only,
             audio_tracks=cur_audio_tracks,
             session=StreamSessionOpts(
                 service=self._service_id,
@@ -206,20 +217,38 @@ def _get_stream_url(stream, is_live) -> Tuple[str, str]:
 
 def _get_fmt_name(stream, unknown_counter, is_muxed=False):
     fmt_name = stream.get("format_note") or stream.get("format_id")
+    codec_info = _get_codec_info(stream)
 
     if not re.match(r"^\d+p", fmt_name):
         if stream.get("height"):
-            if stream.get("format_id"):
+            if codec_info:
+                fmt_name = "{0}p [{1}]".format(stream["height"], codec_info)
+            elif stream.get("format_id"):
                 fmt_name = "{0}p [{1}]".format(stream["height"], stream["format_id"])
             else:
                 fmt_name = "{0}p".format(stream["height"])
         else:
             fmt_name = stream.get("format", "Unknown {0}".format(next(unknown_counter)))
 
+            if codec_info:
+                fmt_name = f"{fmt_name} [{codec_info}]"
+
     if stream.get("acodec") == "none" and not is_muxed:
         fmt_name += " (video only)"
 
-    if stream.get("vcodec") == "none":
-        fmt_name += " (audio only)"
-
     return fmt_name
+
+
+def _get_codec_info(stream):
+    codec = ""
+
+    if stream.get("vcodec") not in {None, "none"}:
+        codec = stream.get("vcodec").split(".")[0]
+    elif stream.get("acodec") not in {None, "none"}:
+        codec = stream.get("acodec").split(".")[0]
+
+    if stream.get("tbr") not in {None, 0}:
+        tbr = int(stream.get("tbr"))
+        codec += f" {tbr}kbps"
+
+    return codec.strip()

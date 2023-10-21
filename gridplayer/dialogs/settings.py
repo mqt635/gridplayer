@@ -2,21 +2,23 @@ import contextlib
 import logging
 import subprocess
 
-from PyQt5.QtCore import QLocale, QUrl
+from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices, QIcon, QPalette
 from PyQt5.QtWidgets import QCheckBox, QComboBox, QDialog, QLineEdit, QSpinBox
 
 from gridplayer.dialogs.messagebox import QCustomMessageBox
 from gridplayer.dialogs.settings_dialog_ui import Ui_SettingsDialog
 from gridplayer.params import env
+from gridplayer.params.languages import LANGUAGES
 from gridplayer.params.static import (
-    SUPPORTED_LANGUAGES,
+    AudioChannelMode,
     GridMode,
     SeekSyncMode,
     URLResolver,
     VideoAspect,
     VideoDriver,
     VideoRepeat,
+    VideoTransform,
 )
 from gridplayer.settings import Settings
 from gridplayer.utils import log_config
@@ -71,8 +73,11 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
             "player/pause_minimized": self.playerPauseWhenMinimized,
             "player/inhibit_screensaver": self.playerInhibitScreensaver,
             "player/one_instance": self.playerOneInstance,
+            "player/stay_on_top": self.playerStayOnTop,
             "player/show_overlay_border": self.playerShowOverlayBorder,
             "player/language": self.listLanguages,
+            "player/recent_list_enabled": self.playerRecentList,
+            "player/recent_list_max_size": self.playerRecentListSize,
             "playlist/grid_mode": self.gridMode,
             "playlist/grid_fit": self.gridFit,
             "playlist/grid_size": self.gridSize,
@@ -85,7 +90,9 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
             "playlist/disable_click_pause": self.playlistDisableClickPause,
             "playlist/disable_wheel_seek": self.playlistDisableWheelSeek,
             "video_defaults/aspect": self.videoAspect,
+            "video_defaults/transform": self.videoTransform,
             "video_defaults/repeat": self.repeatMode,
+            "video_defaults/audio_mode": self.videoAudioMode,
             "video_defaults/random_loop": self.videoRandomLoop,
             "video_defaults/muted": self.videoMuted,
             "video_defaults/paused": self.videoPaused,
@@ -126,6 +133,9 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
 
         _set_groupbox_header_bold(self.playerVideoDriverBox)
 
+        if env.IS_LINUX:
+            self.playerStayOnTop.hide()
+
         if not env.IS_LINUX:
             self.section_misc.hide()
             self.miscOpaqueHWOverlay.hide()
@@ -145,6 +155,7 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         self.fill_playerVideoDriver()
         self.fill_gridMode()
         self.fill_videoAspect()
+        self.fill_videoTransform()
         self.fill_repeatMode()
         self.fill_logLevel()
         self.fill_logLevelVLC()
@@ -152,6 +163,7 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         self.fill_streamQuality()
         self.fill_playlistSeekSyncMode()
         self.fill_streamingResolverPriority()
+        self.fill_videoAudioMode()
 
     def ui_set_limits(self):  # noqa: WPS213
         self.playerVideoDriverPlayers.setRange(1, MAX_VLC_PROCESSES)
@@ -160,6 +172,7 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         self.logLimitSize.setRange(1, 1024 * 1024)
         self.logLimitBackups.setRange(1, 1000)
         self.timeoutVideoInit.setRange(1, 1000)
+        self.playerRecentListSize.setRange(1, 100)
 
         self.gridSize.setRange(0, 1000)
         self.gridSize.setSpecialValueText(translate("Grid Size", "Auto"))
@@ -176,6 +189,7 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         self.logLimitSize.setEnabled(self.logLimit.isChecked())
         self.logLimitBackups.setEnabled(self.logLimit.isChecked())
         self.streamingWildcardHelp.setVisible(False)
+        self.playerRecentListSize.setEnabled(self.playerRecentList.isChecked())
 
         self.switch_page(None)
 
@@ -190,6 +204,7 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
             (self.logLimit.stateChanged, self.logLimitSize.setEnabled),
             (self.logLimit.stateChanged, self.logLimitBackups.setEnabled),
             (self.streamingWildcardHelpButton.clicked, self.toggle_wildcard_help),
+            (self.playerRecentList.stateChanged, self.playerRecentListSize.setEnabled),
         )
 
     def toggle_wildcard_help(self):
@@ -273,6 +288,20 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
 
         _fill_combo_box(self.videoAspect, aspect_ratios)
 
+    def fill_videoTransform(self):
+        transform_options = {
+            VideoTransform.ROTATE_90: self.tr("Rotate 90"),
+            VideoTransform.ROTATE_180: self.tr("Rotate 180"),
+            VideoTransform.ROTATE_270: self.tr("Rotate 270"),
+            VideoTransform.HFLIP: self.tr("Flip Horizontally"),
+            VideoTransform.VFLIP: self.tr("Flip Vertically"),
+            VideoTransform.TRANSPOSE: self.tr("Transpose"),
+            VideoTransform.ANTITRANSPOSE: self.tr("Anti-transpose"),
+            VideoTransform.NONE: self.tr("No Transform"),
+        }
+
+        _fill_combo_box(self.videoTransform, transform_options)
+
     def fill_repeatMode(self):
         repeat_modes = {
             VideoRepeat.SINGLE_FILE: self.tr("Single File"),
@@ -318,26 +347,15 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         _fill_combo_box(self.playerVideoDriver, video_drivers)
 
     def fill_language(self):
-        languages = {
-            lang_id: {
-                "language": QLocale(lang_id).nativeLanguageName().title(),
-                "country": QLocale(lang_id).nativeCountryName().title(),
-                "icon": f":/icons/flag_{lang_id}.svg",
-                "author": lang["author"],
-            }
-            for lang_id, lang in SUPPORTED_LANGUAGES.items()
-        }
-        sorted_languages = dict(
-            sorted(languages.items(), key=lambda x: x[1]["language"])
-        )
-
-        for lang_id, lang in sorted_languages.items():
-            self.listLanguages.add_language_row(lang_id, lang)
+        for language in LANGUAGES:
+            self.listLanguages.add_language_row(language)
 
     def fill_streamQuality(self):
         quality_codes = {
             "best": self.tr("Best"),
             "worst": self.tr("Worst"),
+            "best_audio_only": self.tr("Best (Audio Only)"),
+            "worst_audio_only": self.tr("Worst (Audio Only)"),
         }
 
         standard_quality_codes = [
@@ -377,6 +395,20 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         }
 
         _fill_combo_box(self.streamingResolverPriority, resolvers)
+
+    def fill_videoAudioMode(self):
+        modes = {
+            AudioChannelMode.UNSET: translate("Audio Mode", "Original"),
+            AudioChannelMode.STEREO: translate("Audio Mode", "Stereo"),
+            AudioChannelMode.RSTEREO: translate("Audio Mode", "Reverse Stereo"),
+            AudioChannelMode.LEFT: translate("Audio Mode", "Left"),
+            AudioChannelMode.RIGHT: translate("Audio Mode", "Right"),
+            AudioChannelMode.DOLBYS: translate("Audio Mode", "Dolby Surround"),
+            AudioChannelMode.HEADPHONES: translate("Audio Mode", "Headphones"),
+            AudioChannelMode.MONO: translate("Audio Mode", "Mono"),
+        }
+
+        _fill_combo_box(self.videoAudioMode, modes)
 
     def driver_selected(self, idx):
         driver_id = self.playerVideoDriver.itemData(idx)

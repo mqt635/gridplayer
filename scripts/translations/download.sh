@@ -6,11 +6,26 @@ SCRIPT_DIR="$( cd "$( dirname $0 )" && pwd )"
 
 . "scripts/init_app_vars.sh"
 
-if [ -n "$1" ]; then
-    echo "Downloading translation for language $1"
-    crowdin.bat download -c "$SCRIPT_DIR/crowdin.yml" --identity ".local/crowdin.yml" --skip-untranslated-strings --export-only-approved --language="$1"
+list_proofread() {
+    # output: LANG PERCENT
+    crowdin.bat status proofreading --no-progress --no-colors -c "$SCRIPT_DIR/crowdin.yml" --identity ".local/crowdin.yml" | grep "%" | grep -v " 0%" | sed -E "s/[[:space:]]*- (.+): [[:digit:]]+%/\1/"
+}
+
+if [ "$1" == "list" ]; then
+    list_proofread
     exit 0
 fi
 
-echo "Downloading all completed translations"
-crowdin.bat download -c "$SCRIPT_DIR/crowdin.yml" --identity ".local/crowdin.yml" --skip-untranslated-files --export-only-approved
+if [ -n "$1" ]; then
+    echo "Selected languages: $@"
+    IFS=' ' read -a LANUAGES <<< "$@"
+else
+    LANUAGES=$(list_proofread | cut -d' ' -f1)
+fi
+
+for CUR_LANG in ${LANUAGES[@]}; do
+    echo "Downloading language '$CUR_LANG'"
+    crowdin.bat download -c "$SCRIPT_DIR/crowdin.yml" --identity ".local/crowdin.yml" --skip-untranslated-strings --export-only-approved --language="$CUR_LANG"
+done
+
+"$SCRIPT_DIR/strip_locations.sh"

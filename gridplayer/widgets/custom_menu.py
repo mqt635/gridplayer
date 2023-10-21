@@ -1,7 +1,7 @@
 from types import MappingProxyType
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QMenu, QProxyStyle, QStyle
+from PyQt5.QtWidgets import QMenu, QProxyStyle, QStyle, qApp
 
 from gridplayer.utils.darkmode import is_dark_mode
 
@@ -13,6 +13,7 @@ COLORS_LIGHT = MappingProxyType(
         "background_selected": "#aaa",
         "background_checked": "#888",
         "text": "#000",
+        "text_disabled": "#888",
         "border": "#aaa",
     }
 )
@@ -23,6 +24,7 @@ COLORS_DARK = MappingProxyType(
         "background_selected": "#888",
         "background_checked": "#666",
         "text": "#eee",
+        "text_disabled": "#888",
         "border": "#888",
     }
 )
@@ -33,7 +35,7 @@ QMenu {
     color: {text};
     border: 1px solid {border};
     margin: 0;
-    menu-scrollable: 0;
+    menu-scrollable: 1;
 }
 QMenu::icon { margin-left: 5px;}
 QMenu::item {
@@ -47,6 +49,7 @@ QMenu::separator { height: 1px; margin: 2px 3px; background: {border}; }
 QMenu::item:selected { background-color: {background_selected}; }
 QMenu::item:checked { background-color: {background_checked}; }
 QMenu::item:checked:selected  { background-color: {background_selected}; }
+QMenu::item:disabled { color: {text_disabled}; }
 """
 
 
@@ -54,7 +57,7 @@ class CustomMenu(QMenu):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self.setStyle(BigMenuIcons())
+        self.setStyle(BigMenuIcons(qApp.style()))
         self.setStyleSheet(_get_theme_style())
 
         self.setWindowFlags(

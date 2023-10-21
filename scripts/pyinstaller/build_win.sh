@@ -7,7 +7,7 @@ SCRIPT_DIR="$( cd "$( dirname $0 )" && pwd )"
 . "scripts/init_app_vars.sh"
 
 VLC_URL="https://get.videolan.org/vlc/3.0.17.4/win64/vlc-3.0.17.4-win64.zip"
-PYINSTALLER_VERSION="5.1"
+PYINSTALLER_VERSION="5.11.0"
 
 mkdir -p "$BUILD_DIR"
 
@@ -26,38 +26,12 @@ cp "$RESOURCES_DIR/icons/playlist/sys/windows.ico" "$BUILD_DIR/mime.ico"
 # Make version_info
 copy_with_app_vars "$SCRIPT_DIR/version_info.py" "$BUILD_DIR"
 
-cp "$SCRIPT_DIR/hook_lib.py" "$BUILD_DIR"
-
 copy_with_app_vars "$SCRIPT_DIR/pyinstaller_win.spec" "$BUILD_DIR/$APP_NAME.spec"
 
 pyinstaller --ascii --clean --noconfirm "$BUILD_DIR/$APP_NAME.spec"
 
 # Post-build
 # =============
-
-echo "Moving all bundle files into lib dir"
-
-BASE_DIR="$DIST_DIR/$APP_NAME"
-LIB_DIR="$DIST_DIR/lib"
-
-mkdir "$LIB_DIR"
-mv $BASE_DIR/* "$LIB_DIR" &> /dev/bull
-
-# Move main exe back into base dir
-mv "$LIB_DIR/$APP_NAME.exe" "$BASE_DIR"
-
-# Copy base libs so that subprocess could still access them
-cp "$LIB_DIR/base_library.zip" "$BASE_DIR"
-cp "$LIB_DIR"/python3*.dll "$BASE_DIR"
-cp "$LIB_DIR"/VCRUNTIME*.dll "$BASE_DIR"
-
-mv "$LIB_DIR"/Crypto "$BASE_DIR"
-mv "$LIB_DIR"/Cryptodome "$BASE_DIR"
-mv "$LIB_DIR"/lxml "$BASE_DIR"
-mv "$LIB_DIR"/streamlink "$BASE_DIR"
-mv "$LIB_DIR"/pycountry "$BASE_DIR"
-
-mv "$LIB_DIR" "$BASE_DIR"
 
 echo "Embedding VLC"
 
@@ -83,6 +57,12 @@ if [ ! -d "$VLC_EMBED_SRC" ]; then
     cp -a "$BUILD_DIR"/vlc-*/plugins/stream_filter "$VLC_EMBED_SRC/plugins"
     cp -a "$BUILD_DIR"/vlc-*/plugins/video_chroma "$VLC_EMBED_SRC/plugins"
     cp -a "$BUILD_DIR"/vlc-*/plugins/video_output "$VLC_EMBED_SRC/plugins"
+    cp -a "$BUILD_DIR"/vlc-*/plugins/d3d9 "$VLC_EMBED_SRC/plugins"
+    cp -a "$BUILD_DIR"/vlc-*/plugins/d3d11 "$VLC_EMBED_SRC/plugins"
+
+    mkdir -p "$VLC_EMBED_SRC/plugins/video_filter"
+    cp "$BUILD_DIR"/vlc-*/plugins/video_filter/libtransform_plugin.dll "$VLC_EMBED_SRC/plugins/video_filter"
+
     "$BUILD_DIR"/vlc-*/vlc-cache-gen.exe "$VLC_EMBED_SRC/plugins"
 
     cp -a "$BUILD_DIR"/vlc-*/libvlc.dll "$VLC_EMBED_SRC"

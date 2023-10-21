@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QWidget
 from gridplayer.params import env
 from gridplayer.vlc_player.instance import InstanceProcessVLC
 from gridplayer.vlc_player.player_base_threaded import VlcPlayerThreaded
-from gridplayer.vlc_player.static import MediaTrack
+from gridplayer.vlc_player.static import Media
 from gridplayer.vlc_player.video_driver_base_threaded import VLCVideoDriverThreaded
 from gridplayer.widgets.video_frame_vlc_base import VideoFrameVLCProcess
 
@@ -64,7 +64,7 @@ class PlayerProcessSingleVLCHW(VlcPlayerThreaded):
         elif env.IS_MACOS:
             self._media_player.set_nsobject(self.win_id)
 
-    def notify_load_video_done(self, media_track: MediaTrack):
+    def notify_load_video_done(self, media_track: Media):
         if env.IS_LINUX:
             self.init_semaphore.release()
             self._log.debug("Semaphore released")
@@ -84,22 +84,25 @@ class PlayerProcessSingleVLCHW(VlcPlayerThreaded):
 
 
 class VideoDriverVLCHW(VLCVideoDriverThreaded):
-    def __init__(self, win_id, process_manager, **kwargs):
+    def __init__(self, win_id, process_manager, vlc_options, **kwargs):
         super().__init__(**kwargs)
 
-        process_manager.init_player({"win_id": win_id}, self.cmd_child_pipe())
+        process_manager.init_player(
+            {"win_id": win_id}, self.cmd_child_pipe(), vlc_options
+        )
 
-    def adjust_view(self, size, aspect, scale):
-        self.cmd_send("adjust_view", size, aspect, scale)
+    def adjust_view(self, size, aspect, scale, crop):
+        self.cmd_send("adjust_view", size, aspect, scale, crop)
 
 
 class VideoFrameVLCHW(VideoFrameVLCProcess):
     is_opengl = True
 
-    def driver_setup(self):
+    def driver_setup(self, vlc_options):
         return VideoDriverVLCHW(
             win_id=int(self.video_surface.winId()),
             process_manager=self.process_manager,
+            vlc_options=vlc_options,
             parent=self,
         )
 
@@ -121,7 +124,7 @@ class VideoFrameVLCHW(VideoFrameVLCProcess):
             return
 
         size = (self.size().width(), self.size().height())
-        self.video_driver.adjust_view(size, self._aspect, self._scale)
+        self.video_driver.adjust_view(size, self._aspect, self._scale, self._crop)
 
         # Remove VLC crop black border
         new_size = self.size().grownBy(QMargins(2, 2, 2, 2))

@@ -257,6 +257,10 @@ class OverlayBlock(QWidget):  # noqa: WPS230
     def set_is_active(self, is_active):
         self.border_widget.setVisible(is_active)
 
+    @pyqtSlot(bool)
+    def set_volume_button_visible(self, is_visible):
+        self.volume_button.setVisible(is_visible)
+
     def _set_opacity(self, opacity):
         effect = QGraphicsOpacityEffect(self)
         effect.setOpacity(opacity)
@@ -333,8 +337,6 @@ class OverlayBlockFloating(OverlayBlock):
         event.accept()
 
     def paintEvent(self, event):
-        self.move_to_parent()
-
         if self.is_opaque:
             # 0 coord to keep children from sliding off
             mask = QRegion(QRect(0, 0, 1, 1))
